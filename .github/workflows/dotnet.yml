@@ -1,0 +1,28 @@
+name: .NET
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+    # - name: Test
+    #   run: dotnet test --no-restore
+    - name: Create the package
+      run: dotnet pack --configuration Release
+    - name: Publish the package to NUGET
+      env: # Set the secret as an input
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}       
+      if: ${{ github.ref == 'refs/heads/main' }}    
+      run: dotnet nuget push bin/Release/*.nupkg --source https://api.nuget.org/v3/index.json --api-key $NUGET_API_KEY

@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFrameworks>net6.0</TargetFrameworks>
+		<LangVersion>latest</LangVersion>
+		<ProductVersion>1.0.0</ProductVersion>
+		<SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+		<AssemblyTitle>AzAutoNumber</AssemblyTitle>
+		<Product>AzAutoNumber</Product>
+		<Description>High performance, distributed unique id generator for Azure environments.</Description>
+		<Version>1.0.0</Version>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<FileVersion>1.0.0.0</FileVersion>
+		<OutputPath>bin\$(Configuration)\</OutputPath>
+		<Authors>Oscar van Tol</Authors>
+		<PackageLicenseExpression>MS-PL</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/oscarvantol/AzAutoNumber</PackageProjectUrl>
+		<PackageTags>MSTest</PackageTags>
+		<Title>AppInsights.TestLogger</Title>
+		<AssemblyName>AppInsights.TestLogger</AssemblyName>
+		<RootNamespace>AppInsights.TestLogger</RootNamespace>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageReleaseNotes></PackageReleaseNotes>
+		<PackageId>Oscarvantol.AppInsights.TestLogger</PackageId>
+		<PackageVersion>1.0.0</PackageVersion>
+		<IsPackable>true</IsPackable>
+		<SignAssembly>False</SignAssembly>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+		<DebugType>full</DebugType>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+		<DebugType>pdbonly</DebugType>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.9.0" />
+		<PackageReference Include="Microsoft.ApplicationInsights" Version="2.22.0" />
+	</ItemGroup>
+</Project>
