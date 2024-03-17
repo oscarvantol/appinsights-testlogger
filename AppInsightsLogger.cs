@@ -9,7 +9,7 @@ using System.Collections.Generic;
 namespace AppInsights.TestLogger;
 [FriendlyName("AppInsights")]
 [ExtensionUri("logger://oscarvantol/TestPlatform/AppInsightsTestLogger/v1")]
-public class AppInsightsLogger //: ITestLoggerWithParameters
+public class AppInsightsLogger : ITestLoggerWithParameters
 {
     private TelemetryClient _telemetryClient;
 
