@@ -45,6 +45,7 @@ public class AppInsightsLogger : ITestLoggerWithParameters
         {
             Name = testResult.TestCase.DisplayName,
             Success = testResult.Outcome == TestOutcome.Passed,
+            ResponseCode = MapResultCode(testResult.Outcome),
             Duration = testResult.Duration,
             Source = testResult.TestCase.FullyQualifiedName,
             Timestamp = testResult.StartTime,
@@ -57,6 +58,17 @@ public class AppInsightsLogger : ITestLoggerWithParameters
         };
 
         _telemetryClient.Track(customEvent);
+    }
+
+    private string MapResultCode(TestOutcome outcome)
+    {
+        return outcome switch
+        {
+            TestOutcome.Passed => "200",
+            TestOutcome.Failed => "500",
+            TestOutcome.Skipped => "404",
+            _ => "400"
+        };
     }
 
     private void Events_TestRunComplete(object? sender, TestRunCompleteEventArgs e)
