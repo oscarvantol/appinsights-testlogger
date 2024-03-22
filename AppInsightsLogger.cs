@@ -5,6 +5,8 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+
 
 namespace AppInsights.TestLogger;
 [FriendlyName("AppInsights")]
@@ -12,6 +14,7 @@ namespace AppInsights.TestLogger;
 public class AppInsightsLogger : ITestLoggerWithParameters
 {
     private TelemetryClient _telemetryClient;
+    private string _operationId = new Guid().ToString();
 
     public void Initialize(TestLoggerEvents events, string testRunDirectory)
     {
@@ -33,31 +36,63 @@ public class AppInsightsLogger : ITestLoggerWithParameters
             ConnectionString = connectionstring
         });
 
+
+        events.DiscoveryComplete += Events_DiscoveryComplete;
+        events.DiscoveredTests += Events_DiscoveredTests;
         events.TestResult += Events_TestResult;
         events.TestRunComplete += Events_TestRunComplete;
+    }
+
+    private void Events_DiscoveredTests(object sender, DiscoveredTestsEventArgs e)
+    {
+        e.DiscoveredTestCases.ToList().ForEach(testCase =>
+        {
+            var traceTelemetry = new TraceTelemetry();
+            traceTelemetry.Message = $"Discovered test {testCase.DisplayName}";
+            traceTelemetry.Timestamp = DateTime.Now;
+            testCase.Traits.ToList().ForEach(trait =>
+            {
+                traceTelemetry.Properties.Add(trait.Name, trait.Value);
+            });
+            testCase.Properties.ToList().ForEach(property =>
+            {
+                traceTelemetry.Properties.Add("Category", property.Category);
+                traceTelemetry.Properties.Add("Label", property.Label);
+            });
+            _telemetryClient.TrackTrace(traceTelemetry);
+        });
+    }
+
+    private void Events_DiscoveryComplete(object sender, DiscoveryCompleteEventArgs e)
+    {
+
     }
 
     private void Events_TestResult(object? sender, TestResultEventArgs e)
     {
         var testResult = e.Result;
+        using var requestOperation = _telemetryClient.StartOperation<RequestTelemetry>(testResult.TestCase.DisplayName, _operationId);
+        requestOperation.Telemetry.ResponseCode = MapResultCode(testResult.Outcome);
+        requestOperation.Telemetry.Success = testResult.Outcome == TestOutcome.Passed;
+        requestOperation.Telemetry.Duration = testResult.Duration;
+        requestOperation.Telemetry.Source = testResult.TestCase.FullyQualifiedName.Replace($".{testResult.TestCase.DisplayName}", "");
+        requestOperation.Telemetry.Timestamp = testResult.StartTime;
+        requestOperation.Telemetry.Properties.Add("TestCaseId", testResult.TestCase.Id.ToString());
+        requestOperation.Telemetry.Properties.Add("ErrorMessage", testResult.ErrorMessage);
+        requestOperation.Telemetry.Properties.Add("ErrorStackTrace", testResult.ErrorStackTrace);
 
-        var customEvent = new RequestTelemetry()
+        if (testResult.Outcome == TestOutcome.Failed)
         {
-            Name = testResult.TestCase.DisplayName,
-            Success = testResult.Outcome == TestOutcome.Passed,
-            ResponseCode = MapResultCode(testResult.Outcome),
-            Duration = testResult.Duration,
-            Source = testResult.TestCase.FullyQualifiedName,
-            Timestamp = testResult.StartTime,
-            Properties =
-            {
-                { "TestCaseId", testResult.TestCase.Id.ToString() },
-                { "ErrorMessage", testResult.ErrorMessage },
-                { "ErrorStackTrace", testResult.ErrorStackTrace }
-            }
-        };
+            var exceptionTelemetry = new ExceptionTelemetry();
+            exceptionTelemetry.Exception = new Exception(testResult.ErrorMessage);
+            exceptionTelemetry.ProblemId = testResult.ErrorMessage;
+            exceptionTelemetry.SeverityLevel = SeverityLevel.Error;
+            exceptionTelemetry.Timestamp = testResult.StartTime;
+            exceptionTelemetry.Message = testResult.ErrorStackTrace;
+            _telemetryClient.TrackException(exceptionTelemetry);
+        }
 
-        _telemetryClient.Track(customEvent);
+        _telemetryClient.StopOperation(requestOperation);
     }
 
     private string MapResultCode(TestOutcome outcome)
