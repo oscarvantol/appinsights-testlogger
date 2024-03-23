@@ -21,7 +21,7 @@
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageReleaseNotes></PackageReleaseNotes>
 		<PackageId>Oscarvantol.AppInsights.TestLogger</PackageId>
-		<PackageVersion>1.0.0-preview7</PackageVersion>
+		<PackageVersion>1.0.0</PackageVersion>
 		<IsPackable>true</IsPackable>
 		<SignAssembly>False</SignAssembly>
 	</PropertyGroup>

@@ -44,71 +44,45 @@ public class AppInsightsLogger : ITestLoggerWithParameters
         _telemetryClient.TrackTrace("Test run started", SeverityLevel.Information);
 
 
-        events.DiscoveryComplete += Events_DiscoveryComplete;
-        events.DiscoveredTests += Events_DiscoveredTests;
         events.TestResult += Events_TestResult;
         events.TestRunComplete += Events_TestRunComplete;
-    }
-
-    private void Events_DiscoveredTests(object sender, DiscoveredTestsEventArgs e)
-    {
-        _telemetryClient.TrackTrace("### Events_DiscoveredTests", SeverityLevel.Information, new Dictionary<string, string>() { { "TestCases", e.DiscoveredTestCases.Count().ToString() } });
-
-        e.DiscoveredTestCases.ToList().ForEach(testCase =>
-        {
-            LogDebug($"tracking trace for discovered test: {testCase.DisplayName}");
-            var traceTelemetry = new TraceTelemetry();
-            traceTelemetry.Message = $"Discovered test {testCase.DisplayName}";
-            traceTelemetry.Timestamp = DateTime.Now;
-            traceTelemetry.SeverityLevel = SeverityLevel.Information;
-            testCase.Traits.ToList().ForEach(trait =>
-            {
-                traceTelemetry.Properties.Add(trait.Name, trait.Value);
-                LogDebug($"trait: {trait.Name} - {trait.Value}");
-            });
-            testCase.Properties.ToList().ForEach(property =>
-            {
-                traceTelemetry.Properties.Add("Category", property.Category);
-                traceTelemetry.Properties.Add("Label", property.Label);
-                LogDebug($"property: category {property.Category} / label {property.Label}");
-            });
-            _telemetryClient.TrackTrace(traceTelemetry);
-        });
-    }
-
-    private void Events_DiscoveryComplete(object sender, DiscoveryCompleteEventArgs e)
-    {
-        LogDebug("### Events_DiscoveryComplete");
-        LogDebug($"TotalCount: {e.TotalCount}");
-        LogDebug($"SkippedDiscoveredSources: {e.SkippedDiscoveredSources}");
-        LogDebug($"DiscoveredExtensions: {e.DiscoveredExtensions}");
-        LogDebug($"FullyDiscoveredSources: {e.FullyDiscoveredSources}");
-
-
-
     }
 
     private void Events_TestResult(object? sender, TestResultEventArgs e)
     {
         var testResult = e.Result;
-        
+
         LogDebug("### Events_TestResult");
         LogDebug($"tracking request: {testResult.TestCase.DisplayName}");
 
         using var requestOperation = _telemetryClient.StartOperation<RequestTelemetry>(testResult.TestCase.DisplayName, _operationId);
+
+        var className = testResult.TestCase.FullyQualifiedName.Replace($".{testResult.TestCase.DisplayName}", ""); 
         requestOperation.Telemetry.ResponseCode = MapResultCode(testResult.Outcome);
         requestOperation.Telemetry.Success = testResult.Outcome == TestOutcome.Passed;
         requestOperation.Telemetry.Duration = testResult.Duration;
-        requestOperation.Telemetry.Source = testResult.TestCase.FullyQualifiedName.Replace($".{testResult.TestCase.DisplayName}", "");
+        requestOperation.Telemetry.Source = className;
         requestOperation.Telemetry.Timestamp = testResult.StartTime;
+        requestOperation.Telemetry.Context.Cloud.RoleName = className;
         requestOperation.Telemetry.Properties.Add("TestCaseId", testResult.TestCase.Id.ToString());
         requestOperation.Telemetry.Properties.Add("ErrorMessage", testResult.ErrorMessage);
         requestOperation.Telemetry.Properties.Add("ErrorStackTrace", testResult.ErrorStackTrace);
 
+        testResult.TestCase.Traits.ToList().ForEach(trait =>
+        {
+            LogDebug($"{trait.Name} - {trait.Value}");
+            requestOperation.Telemetry.Properties.Add(trait.Name, trait.Value);
+        });
+
+        foreach(var testCategory in GetTestCategories(testResult))
+        {
+            LogDebug($"TestCategory: {testCategory}");
+            requestOperation.Telemetry.Properties.Add("TestCategory", testCategory);
+        }
+
         if (testResult.Outcome == TestOutcome.Failed)
         {
-            var exceptionTelemetry = new ExceptionTelemetry();
-            exceptionTelemetry.Exception = new Exception(testResult.ErrorMessage);
+            var exceptionTelemetry = new ExceptionTelemetry(new TestFailedException(testResult));
             exceptionTelemetry.ProblemId = testResult.ErrorMessage;
             exceptionTelemetry.SeverityLevel = SeverityLevel.Critical;
             exceptionTelemetry.Timestamp = testResult.StartTime;
@@ -118,7 +92,15 @@ public class AppInsightsLogger : ITestLoggerWithParameters
         }
 
         _telemetryClient.StopOperation(requestOperation);
-       
+    }
+
+    private static string[] GetTestCategories(TestResult testResult)
+    {
+        var categoryProperty = testResult.TestCase.Properties.SingleOrDefault(tp => tp.Label == "TestCategory");
+        if (categoryProperty != null && testResult.TestCase.GetPropertyValue(categoryProperty) is string[] value)
+            return value;
+
+        return [];
     }
 
     private string MapResultCode(TestOutcome outcome)
@@ -134,6 +116,7 @@ public class AppInsightsLogger : ITestLoggerWithParameters
 
     private void Events_TestRunComplete(object? sender, TestRunCompleteEventArgs e)
     {
+
         _telemetryClient.Flush();
         Console.WriteLine("Test run completed, flushing telemetry.");
     }
