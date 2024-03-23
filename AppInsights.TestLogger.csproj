@@ -4,16 +4,16 @@
 		<LangVersion>latest</LangVersion>
 		<ProductVersion>1.0.0</ProductVersion>
 		<SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
-		<AssemblyTitle>AzAutoNumber</AssemblyTitle>
-		<Product>AzAutoNumber</Product>
-		<Description>High performance, distributed unique id generator for Azure environments.</Description>
+		<AssemblyTitle>AppInsights TestLogger</AssemblyTitle>
+		<Product>AppInsights.TestLogger</Product>
+		<Description>.NET TestLogger targeting Application Insights telemetry.</Description>
 		<Version>1.0.0</Version>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>
 		<FileVersion>1.0.0.0</FileVersion>
 		<OutputPath>bin\$(Configuration)\</OutputPath>
 		<Authors>Oscar van Tol</Authors>
-		<PackageLicenseExpression>MS-PL</PackageLicenseExpression>
-		<PackageProjectUrl>https://github.com/oscarvantol/AzAutoNumber</PackageProjectUrl>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageProjectUrl>https://github.com/oscarvantol/appinsights-testlogger</PackageProjectUrl>
 		<PackageTags>MSTest</PackageTags>
 		<Title>AppInsights.TestLogger</Title>
 		<AssemblyName>AppInsights.TestLogger</AssemblyName>
@@ -21,7 +21,7 @@
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageReleaseNotes></PackageReleaseNotes>
 		<PackageId>Oscarvantol.AppInsights.TestLogger</PackageId>
-		<PackageVersion>1.0.0-preview6</PackageVersion>
+		<PackageVersion>1.0.0-preview7</PackageVersion>
 		<IsPackable>true</IsPackable>
 		<SignAssembly>False</SignAssembly>
 	</PropertyGroup>
