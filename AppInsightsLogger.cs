@@ -102,11 +102,13 @@ public class AppInsightsLogger : ITestLoggerWithParameters
         var buildNumber = Environment.GetEnvironmentVariable("BUILD_BUILDNUMBER");
         var definitionId = Environment.GetEnvironmentVariable("SYSTEM_DEFINITIONID");
         var definitionName = Environment.GetEnvironmentVariable("BUILD_DEFINITIONNAME");
+        var buildReason = Environment.GetEnvironmentVariable("BUILD_REASON");
 
         properties.Add("BuildId", buildId);
         properties.Add("BuildNumber", buildNumber);
         properties.Add("DefinitionId", definitionId);
         properties.Add("DefinitionName", definitionName);
+        properties.Add("BuildReason", buildReason);
     }
 
     private static string[] GetTestCategories(TestResult testResult)
