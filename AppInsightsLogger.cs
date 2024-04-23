@@ -1,5 +1,6 @@
 ﻿using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.DataContracts;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
@@ -57,7 +58,7 @@ public class AppInsightsLogger : ITestLoggerWithParameters
 
         using var requestOperation = _telemetryClient.StartOperation<RequestTelemetry>(testResult.TestCase.DisplayName, _operationId);
 
-        var className = testResult.TestCase.FullyQualifiedName.Replace($".{testResult.TestCase.DisplayName}", ""); 
+        var className = testResult.TestCase.FullyQualifiedName.Replace($".{testResult.TestCase.DisplayName}", "");
         requestOperation.Telemetry.ResponseCode = MapResultCode(testResult.Outcome);
         requestOperation.Telemetry.Success = testResult.Outcome == TestOutcome.Passed;
         requestOperation.Telemetry.Duration = testResult.Duration;
@@ -67,6 +68,7 @@ public class AppInsightsLogger : ITestLoggerWithParameters
         requestOperation.Telemetry.Properties.Add("TestCaseId", testResult.TestCase.Id.ToString());
         requestOperation.Telemetry.Properties.Add("ErrorMessage", testResult.ErrorMessage);
         requestOperation.Telemetry.Properties.Add("ErrorStackTrace", testResult.ErrorStackTrace);
+        AddBuildPipelineProperties(requestOperation.Telemetry.Properties);
 
         testResult.TestCase.Traits.ToList().ForEach(trait =>
         {
@@ -74,7 +76,7 @@ public class AppInsightsLogger : ITestLoggerWithParameters
             requestOperation.Telemetry.Properties.Add(trait.Name, trait.Value);
         });
 
-        foreach(var testCategory in GetTestCategories(testResult))
+        foreach (var testCategory in GetTestCategories(testResult))
         {
             LogDebug($"TestCategory: {testCategory}");
             requestOperation.Telemetry.Properties.Add("TestCategory", testCategory);
@@ -92,6 +94,19 @@ public class AppInsightsLogger : ITestLoggerWithParameters
         }
 
         _telemetryClient.StopOperation(requestOperation);
+    }
+
+    private void AddBuildPipelineProperties(IDictionary<string, string> properties)
+    {
+        var buildId = Environment.GetEnvironmentVariable("BUILD_BUILDID");
+        var buildNumber = Environment.GetEnvironmentVariable("BUILD_BUILDNUMBER");
+        var definitionId = Environment.GetEnvironmentVariable("SYSTEM_DEFINITIONID");
+        var definitionName = Environment.GetEnvironmentVariable("BUILD_DEFINITIONNAME");
+
+        properties.Add("BuildId", buildId);
+        properties.Add("BuildNumber", buildNumber);
+        properties.Add("DefinitionId", definitionId);
+        properties.Add("DefinitionName", definitionName);
     }
 
     private static string[] GetTestCategories(TestResult testResult)
